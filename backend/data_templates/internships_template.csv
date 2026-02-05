@@ -1,0 +1,4 @@
+Roll Number,Company Name,Role Title,Duration (Months),Description,Skills Used,Start Date,End Date
+2021CS001,TCS Digital,Software Development Intern,3,"Developed REST APIs for customer management system, implemented JWT authentication",\"Python, FastAPI, PostgreSQL, Docker\",2024-05-01,2024-07-31
+2021CS002,Infosys,Data Analytics Intern,2,"Performed data analysis on customer behavior, created dashboards using Tableau",\"Python, SQL, Tableau, Excel\",2024-06-01,2024-07-31
+2021ME001,Tata Motors,Design Engineering Intern,3,"Assisted in CAD modeling of vehicle components, performed stress analysis",\"SolidWorks, CATIA, ANSYS\",2024-05-15,2024-08-15

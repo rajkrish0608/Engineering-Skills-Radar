@@ -1,0 +1,5 @@
+Roll Number,Project Title,Project Abstract,Project Type,Semester,Tech Stack
+2021CS001,E-Commerce Platform,"Built a full-stack e-commerce application with payment gateway integration, user authentication, and product catalog management",Academic,5,"Python, Django, PostgreSQL, React"
+2021CS002,Machine Learning Model,"Developed a sentiment analysis model using NLP techniques to classify customer reviews with 89% accuracy",Personal,6,"Python, TensorFlow, Scikit-learn, NLTK"
+2021ME001,Solar Water Heater Design,"Designed and fabricated a solar water heater with improved efficiency using phase change materials",Academic,5,"SolidWorks, ANSYS, MATLAB"
+2021CE001,Bridge Design Project,"Structural analysis and design of a 50-meter span bridge using STAAD.Pro with seismic considerations",Academic,6,"STAAD.Pro, AutoCAD"
