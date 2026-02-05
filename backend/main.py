@@ -17,6 +17,8 @@ from api.students import router as students_router
 from api.skills import router as skills_router
 from api.roles import router as roles_router
 from api.auth import router as auth_router
+from api.bulk_operations import router as bulk_router
+from api.analytics import router as analytics_router
 
 # Create FastAPI app
 app = FastAPI(
@@ -44,6 +46,8 @@ app.include_router(auth_router)  # Auth endpoints (public)
 app.include_router(students_router)
 app.include_router(skills_router)
 app.include_router(roles_router)
+app.include_router(bulk_router)      # Bulk operations for TPO
+app.include_router(analytics_router)  # Analytics for TPO dashboard
 
 # Health check endpoint
 @app.get("/health")
