@@ -13,6 +13,9 @@ from utils.database import get_db
 from services.student_service import StudentService
 from services.skill_service import SkillService
 from services.role_service import RoleService
+from services.scoring_service import ScoringService
+from services.role_matching_service import RoleMatchingService
+from services.gap_analysis_service import GapAnalysisService
 
 router = APIRouter(prefix="/api/students", tags=["Students"])
 
@@ -385,3 +388,169 @@ async def get_student_certifications(
     
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid student ID format")
+
+
+@router.get("/{student_id}/skill-scores")
+async def get_skill_scores(
+    student_id: str,
+    db: Session = Depends(get_db)
+):
+    """Get calculated skill scores for a student (Phase 4)"""
+    try:
+        scoring_service = ScoringService(db)
+        skill_scores = scoring_service.aggregate_all_skills(uuid.UUID(student_id))
+        
+        # Convert to list format
+        scores_list = [
+            {
+                'skill_id': skill_id,
+                'skill_name': data['skill_name'],
+                'score': round(data['score'], 1),
+                'evidence_count': data['evidence_count'],
+                'last_updated': data['last_updated'].isoformat() if data['last_updated'] else None
+            }
+            for skill_id, data in skill_scores.items()
+        ]
+        
+        # Sort by score (highest first)
+        scores_list.sort(key=lambda x: x['score'], reverse=True)
+        
+        return JSONResponse(content={
+            'status': 'success',
+            'student_id': student_id,
+            'count': len(scores_list),
+            'skills': scores_list
+        })
+    
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid student ID format")
+
+
+@router.get("/{student_id}/skill-scores/{skill_id}")
+async def get_skill_score_detail(
+    student_id: str,
+    skill_id: str,
+    db: Session = Depends(get_db)
+):
+    """Get detailed score breakdown for a single skill"""
+    try:
+        scoring_service = ScoringService(db)
+        score, evidence_list = scoring_service.calculate_skill_score(
+            uuid.UUID(student_id),
+            uuid.UUID(skill_id)
+        )
+        
+        return JSONResponse(content={
+            'status': 'success',
+            'skill_score': round(score, 1),
+            'evidence_count': len(evidence_list),
+            'evidence': [
+                {
+                    'source': e.source_type,
+                    'confidence': round(e.confidence * 100, 1),
+                    'date': e.date.isoformat() if e.date else None,
+                    'description': e.evidence_text
+                }
+                for e in evidence_list
+            ]
+        })
+    
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+
+@router.post("/{student_id}/recalculate-scores")
+async def recalculate_scores(
+    student_id: str,
+    db: Session = Depends(get_db)
+):
+    """Trigger recalculation of all skill scores for a student"""
+    try:
+        scoring_service = ScoringService(db)
+        updated_count = scoring_service.update_student_skill_scores(uuid.UUID(student_id))
+        
+        return JSONResponse(content={
+            'status': 'success',
+            'message': f'Successfully recalculated {updated_count} skill scores',
+            'skills_updated': updated_count
+        })
+    
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid student ID format")
+
+
+@router.get("/{student_id}/matches")
+async def get_role_matches_v2(
+    student_id: str,
+    min_compatibility: float = Query(60.0, ge=0.0, le=100.0),
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db)
+):
+    """Get role matches using Phase 4 scoring engine"""
+    try:
+        matching_service = RoleMatchingService(db)
+        matches = matching_service.find_matching_roles(
+            uuid.UUID(student_id),
+            min_compatibility=min_compatibility,
+            limit=limit
+        )
+        
+        return JSONResponse(content={
+            'status': 'success',
+            'count': len(matches),
+            'matches': [
+                {
+                    'role_id': m.role_id,
+                    'role_title': m.role_title,
+                    'company': m.company,
+                    'ctc_range': m.ctc_range,
+                    'compatibility': m.compatibility_percentage,
+                    'matched_skills': m.matched_skills,
+                    'total_skills': m.total_required_skills
+                }
+                for m in matches
+            ]
+        })
+    
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid student ID format")
+
+
+@router.get("/{student_id}/gap-analysis/{role_id}")
+async def get_gap_analysis(
+    student_id: str,
+    role_id: str,
+    db: Session = Depends(get_db)
+):
+    """Get detailed gap analysis and recommendations for a role"""
+    try:
+        gap_service = GapAnalysisService(db)
+        gap_analysis = gap_service.analyze_role_gap(
+            uuid.UUID(student_id),
+            uuid.UUID(role_id)
+        )
+        
+        if 'error' in gap_analysis:
+            raise HTTPException(status_code=404, detail=gap_analysis['error'])
+        
+        # Get recommendations
+        recommendations = gap_service.get_recommendations(
+            uuid.UUID(student_id),
+            gap_analysis['gaps']
+        )
+        
+        # Get alternative roles
+        alternatives = gap_service.find_similar_roles(
+            uuid.UUID(student_id),
+            uuid.UUID(role_id)
+        )
+        
+        return JSONResponse(content={
+            'status': 'success',
+            'gap_analysis': gap_analysis,
+            'recommendations': recommendations,
+            'alternative_roles': alternatives
+        })
+    
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid ID format")
