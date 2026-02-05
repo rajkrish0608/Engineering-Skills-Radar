@@ -11,6 +11,9 @@ import uuid
 
 from utils.database import get_db
 from services.skill_service import SkillService
+from services.skill_extraction_service import SkillExtractionService
+from services.certification_mapper import CertificationMapper
+from services.course_skill_mapper import CourseSkillMapper
 
 router = APIRouter(prefix="/api/skills", tags=["Skills"])
 
@@ -22,6 +25,25 @@ class AssessmentSubmit(BaseModel):
     assessment_type: str = Field(..., pattern="^(quiz|project|certification|internship|course)$")
     score: int = Field(..., ge=0, le=100)
     metadata: Optional[Dict[str, Any]] = None
+
+class ExtractFromProject(BaseModel):
+    project_description: str
+    student_id: Optional[str] = None
+
+class ExtractFromResume(BaseModel):
+    resume_text: str
+    student_id: Optional[str] = None
+
+class ExtractFromCertification(BaseModel):
+    certification_title: str
+    provider: Optional[str] = None
+    student_id: Optional[str] = None
+
+class ExtractFromCourse(BaseModel):
+    course_code: Optional[str] = None
+    course_name: Optional[str] = None
+    syllabus: Optional[str] = None
+    student_id: Optional[str] = None
 
 
 @router.get("/")
@@ -126,3 +148,104 @@ async def submit_assessment(
         raise HTTPException(status_code=400, detail="Invalid ID format")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/extract/project")
+async def extract_skills_from_project(
+    data: ExtractFromProject,
+    db: Session = Depends(get_db)
+):
+    """Extract skills from project description using NLP"""
+    try:
+        extraction_service = SkillExtractionService(db)
+        matches = extraction_service.extract_from_project(data.project_description)
+        
+        return JSONResponse(content={
+            'status': 'success',
+            'skills_found': len(matches),
+            'skills': [
+                {
+                    'skill_id': m.skill_id,
+                    'skill_name': m.skill_name,
+                    'confidence': round(m.confidence, 3),
+                    'evidence': m.evidence_text,
+                    'match_type': m.match_type
+                }
+                for m in matches
+            ]
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+
+
+@router.post("/extract/resume")
+async def extract_skills_from_resume(
+    data: ExtractFromResume,
+    db: Session = Depends(get_db)
+):
+    """Extract skills from resume/CV text using NLP"""
+    try:
+        extraction_service = SkillExtractionService(db)
+        matches = extraction_service.extract_from_resume(data.resume_text)
+        
+        return JSONResponse(content={
+            'status': 'success',
+            'skills_found': len(matches),
+            'skills': [
+                {
+                    'skill_id': m.skill_id,
+                    'skill_name': m.skill_name,
+                    'confidence': round(m.confidence, 3),
+                    'evidence': m.evidence_text,
+                    'match_type': m.match_type
+                }
+                for m in matches
+            ]
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+
+
+@router.post("/extract/certification")
+async def extract_skills_from_certification(
+    data: ExtractFromCertification,
+    db: Session = Depends(get_db)
+):
+    """Map certification to skills using predefined mappings"""
+    try:
+        mapper = CertificationMapper(db)
+        matches = mapper.map_certification(
+            cert_title=data.certification_title,
+            provider=data.provider
+        )
+        
+        return JSONResponse(content={
+            'status': 'success',
+            'skills_found': len(matches),
+            'skills': matches
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Mapping failed: {str(e)}")
+
+
+@router.post("/extract/course")
+async def extract_skills_from_course(
+    data: ExtractFromCourse,
+    db: Session = Depends(get_db)
+):
+    """Map course to skills using code patterns and keywords"""
+    try:
+        mapper = CourseSkillMapper(db)
+        matches = mapper.map_course(
+            course_code=data.course_code,
+            course_name=data.course_name,
+            syllabus=data.syllabus
+        )
+        
+        return JSONResponse(content={
+            'status': 'success',
+            'skills_found': len(matches),
+            'skills': matches
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Mapping failed: {str(e)}")

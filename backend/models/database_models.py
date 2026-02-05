@@ -156,7 +156,7 @@ class SkillAssessment(Base):
     skill_id = Column(UUID(as_uuid=True), ForeignKey('skills.id', ondelete='CASCADE'), nullable=False)
     assessment_type = Column(String(20), nullable=False)
     score = Column(Integer, CheckConstraint('score BETWEEN 0 AND 100'))
-    metadata = Column(JSONB)
+    assessment_metadata = Column(JSONB)  # Renamed from 'metadata' (reserved word)
     completed_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
