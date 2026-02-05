@@ -16,6 +16,7 @@ from api.ingestion import router as ingestion_router
 from api.students import router as students_router
 from api.skills import router as skills_router
 from api.roles import router as roles_router
+from api.auth import router as auth_router
 
 # Create FastAPI app
 app = FastAPI(
@@ -38,6 +39,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth_router)  # Auth endpoints (public)
 app.include_router(ingestion_router)
 app.include_router(students_router)
 app.include_router(skills_router)

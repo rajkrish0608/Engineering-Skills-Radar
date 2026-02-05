@@ -6,11 +6,13 @@ from .skill_service import SkillService
 from .role_service import RoleService
 from .csv_upload_service import CSVUploadService
 from .file_storage_service import FileStorageService
+from .auth_service import AuthService
 
 __all__ = [
     "StudentService",
     "SkillService",
     "RoleService",
     "CSVUploadService",
-    "FileStorageService"
+    "FileStorageService",
+    "AuthService"
 ]
