@@ -264,3 +264,47 @@ class RoleService:
                 )
         
         return recommendations
+
+    @staticmethod
+    def create_role(db: Session, role_data: Dict[str, Any]) -> IndustryRole:
+        """Create a new role"""
+        role = IndustryRole(
+            role_title=role_data['role_title'],
+            role_category=role_data.get('role_category'),
+            description=role_data.get('description'),
+            required_skills=role_data.get('required_skills', []),
+            eligible_branches=role_data.get('eligible_branches', []),
+            avg_ctc=role_data.get('avg_ctc'),
+            demand_score=role_data.get('demand_score', 50),
+            typical_companies=role_data.get('typical_companies', [])
+        )
+        db.add(role)
+        db.commit()
+        db.refresh(role)
+        return role
+
+    @staticmethod
+    def update_role(db: Session, role_id: uuid.UUID, role_data: Dict[str, Any]) -> Optional[IndustryRole]:
+        """Update an existing role"""
+        role = RoleService.get_role_by_id(db, role_id)
+        if not role:
+            return None
+            
+        for key, value in role_data.items():
+            if hasattr(role, key):
+                setattr(role, key, value)
+        
+        db.commit()
+        db.refresh(role)
+        return role
+
+    @staticmethod
+    def delete_role(db: Session, role_id: uuid.UUID) -> bool:
+        """Delete a role"""
+        role = RoleService.get_role_by_id(db, role_id)
+        if not role:
+            return False
+            
+        db.delete(role)
+        db.commit()
+        return True

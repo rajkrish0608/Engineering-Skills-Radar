@@ -5,13 +5,32 @@ REST API for role management and matching
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, Field
 import uuid
 
 from utils.database import get_db
 from services.role_service import RoleService
 
 router = APIRouter(prefix="/api/roles", tags=["Roles"])
+
+
+# Pydantic Models
+class RoleBase(BaseModel):
+    role_title: str
+    role_category: Optional[str] = None
+    description: Optional[str] = None
+    required_skills: List[Dict[str, Any]] = []
+    eligible_branches: List[str] = []
+    avg_ctc: Optional[float] = None
+    demand_score: int = Field(default=50, ge=0, le=100)
+    typical_companies: List[str] = []
+
+class RoleCreate(RoleBase):
+    pass
+
+class RoleUpdate(RoleBase):
+    role_title: Optional[str] = None
 
 
 @router.get("/")
@@ -39,7 +58,70 @@ async def get_roles(
             }
             for r in roles
         ]
+
     })
+
+
+@router.post("/")
+async def create_role(
+    role: RoleCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a new role"""
+    try:
+        new_role = RoleService.create_role(db, role.dict())
+        return JSONResponse(content={
+            'status': 'success',
+            'message': 'Role created successfully',
+            'role_id': str(new_role.id)
+        }, status_code=201)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.put("/{role_id}")
+async def update_role(
+    role_id: str,
+    role_update: RoleUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update an existing role"""
+    try:
+        updated_role = RoleService.update_role(db, uuid.UUID(role_id), role_update.dict(exclude_unset=True))
+        if not updated_role:
+            raise HTTPException(status_code=404, detail="Role not found")
+            
+        return JSONResponse(content={
+            'status': 'success',
+            'message': 'Role updated successfully',
+            'role': {
+                'id': str(updated_role.id),
+                'role_title': updated_role.role_title
+            }
+        })
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid role ID format")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{role_id}")
+async def delete_role(
+    role_id: str,
+    db: Session = Depends(get_db)
+):
+    """Delete a role"""
+    try:
+        success = RoleService.delete_role(db, uuid.UUID(role_id))
+        if not success:
+            raise HTTPException(status_code=404, detail="Role not found")
+            
+        return JSONResponse(content={
+            'status': 'success',
+            'message': 'Role deleted successfully'
+        })
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid role ID format")
 
 
 @router.get("/{role_id}")
