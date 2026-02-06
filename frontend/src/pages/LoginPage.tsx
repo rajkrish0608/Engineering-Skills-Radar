@@ -32,8 +32,12 @@ const LoginPage: React.FC = () => {
         setLoading(true);
 
         try {
-            await login(username, password);
-            navigate('/dashboard');
+            const user = await login(username, password);
+            if (user.role === 'tpo' || user.role === 'admin') {
+                navigate('/tpo');
+            } else {
+                navigate('/dashboard');
+            }
         } catch (err: any) {
             setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
         } finally {

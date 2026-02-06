@@ -10,6 +10,8 @@ import LoginPage from './pages/LoginPage';
 import StudentDashboard from './pages/StudentDashboard';
 import GapAnalysisPage from './pages/GapAnalysisPage';
 import AssessmentPage from './pages/AssessmentPage';
+import TPODashboard from './pages/TPODashboard';
+import TPOStudentList from './pages/TPOStudentList';
 
 // Create Material-UI theme
 const theme = createTheme({
@@ -37,7 +39,7 @@ function App() {
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
 
-            {/* Protected routes */}
+            {/* Student routes */}
             <Route
               path="/dashboard"
               element={
@@ -59,6 +61,24 @@ function App() {
               element={
                 <ProtectedRoute requiredRole={['student']}>
                   <AssessmentPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* TPO routes */}
+            <Route
+              path="/tpo"
+              element={
+                <ProtectedRoute requiredRole={['tpo', 'admin']}>
+                  <TPODashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tpo/students"
+              element={
+                <ProtectedRoute requiredRole={['tpo', 'admin']}>
+                  <TPOStudentList />
                 </ProtectedRoute>
               }
             />
