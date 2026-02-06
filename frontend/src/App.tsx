@@ -8,6 +8,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import StudentDashboard from './pages/StudentDashboard';
+import GapAnalysisPage from './pages/GapAnalysisPage';
+import AssessmentPage from './pages/AssessmentPage';
 
 // Create Material-UI theme
 const theme = createTheme({
@@ -41,6 +43,22 @@ function App() {
               element={
                 <ProtectedRoute requiredRole={['student']}>
                   <StudentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/gaps/:roleId"
+              element={
+                <ProtectedRoute requiredRole={['student']}>
+                  <GapAnalysisPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/assessment"
+              element={
+                <ProtectedRoute requiredRole={['student']}>
+                  <AssessmentPage />
                 </ProtectedRoute>
               }
             />

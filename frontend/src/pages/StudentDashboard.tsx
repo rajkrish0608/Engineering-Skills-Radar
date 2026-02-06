@@ -20,6 +20,9 @@ import {
     AccountCircleOutlined,
     TrendingUpOutlined,
     WorkOutlineOutlined,
+    SchoolOutlined,
+    CodeOutlined,
+    VerifiedOutlined,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 import apiClient from '@/services/apiClient';
@@ -41,10 +44,28 @@ interface RoleMatch {
     avg_ctc?: number;
 }
 
+interface Project {
+    id: string;
+    title: string;
+    type: string;
+    tech_stack: string[];
+    document_url?: string;
+}
+
+interface Certification {
+    id: string;
+    title: string;
+    provider: string;
+    credibility: number;
+    completion_date?: string;
+}
+
 const StudentDashboard: React.FC = () => {
     const { user } = useAuth();
     const [skills, setSkills] = useState<Skill[]>([]);
     const [roleMatches, setRoleMatches] = useState<RoleMatch[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [certifications, setCertifications] = useState<Certification[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -61,13 +82,17 @@ const StudentDashboard: React.FC = () => {
             const studentId = user?.id;
 
             if (studentId) {
-                const [skillsData, rolesData] = await Promise.all([
+                const [skillsData, rolesData, projectsData, certsData] = await Promise.all([
                     apiClient.get<any>(`/api/students/${studentId}/skills`),
                     apiClient.get<any>(`/api/students/${studentId}/role-matches?top_n=5`),
+                    apiClient.get<any>(`/api/students/${studentId}/projects`),
+                    apiClient.get<any>(`/api/students/${studentId}/certifications`),
                 ]);
 
                 setSkills(skillsData.skills || []);
                 setRoleMatches(rolesData.matches || []);
+                setProjects(projectsData.projects || []);
+                setCertifications(certsData.certifications || []);
             }
         } catch (err: any) {
             setError(err.response?.data?.detail || 'Failed to load dashboard data');
@@ -93,13 +118,24 @@ const StudentDashboard: React.FC = () => {
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
             {/* Welcome Section */}
-            <Box sx={{ mb: 4 }}>
-                <Typography variant="h4" gutterBottom fontWeight="bold">
-                    Welcome back, {user?.full_name || user?.username}!
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
-                    Track your skills, explore career opportunities, and plan your growth.
-                </Typography>
+            <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                    <Typography variant="h4" gutterBottom fontWeight="bold">
+                        Welcome back, {user?.full_name || user?.username}!
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary">
+                        Track your skills, explore career opportunities, and plan your growth.
+                    </Typography>
+                </Box>
+                <Button
+                    variant="contained"
+                    size="large"
+                    startIcon={<SchoolOutlined />}
+                    onClick={() => window.location.href = '/assessment'}
+                    sx={{ height: 48 }}
+                >
+                    Take Assessment
+                </Button>
             </Box>
 
             {error && (
@@ -260,6 +296,71 @@ const StudentDashboard: React.FC = () => {
                                     </Card>
                                 ))}
                             </Box>
+                        )}
+                    </Paper>
+                </Grid>
+            </Grid>
+
+            {/* Portfolio Section */}
+            <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mt: 4, mb: 3 }}>
+                My Portfolio
+            </Typography>
+
+            <Grid container spacing={3}>
+                {/* Projects */}
+                <Grid item xs={12} md={6}>
+                    <Paper elevation={2} sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <CodeOutlined color="primary" sx={{ mr: 1.5 }} />
+                            <Typography variant="h6" fontWeight="bold">
+                                Academic Projects
+                            </Typography>
+                        </Box>
+
+                        {projects.length === 0 ? (
+                            <Alert severity="info">No projects added yet.</Alert>
+                        ) : (
+                            projects.map((proj) => (
+                                <Box key={proj.id} sx={{ mb: 2, pb: 2, borderBottom: '1px solid #eee' }}>
+                                    <Typography variant="subtitle1" fontWeight="bold">{proj.title}</Typography>
+                                    <Typography variant="caption" color="text.secondary" display="block">
+                                        Type: {proj.type}
+                                    </Typography>
+                                    <Box sx={{ mt: 1 }}>
+                                        {Array.isArray(proj.tech_stack) ? proj.tech_stack.map((tech) => (
+                                            <Chip key={tech} label={tech} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+                                        )) : null}
+                                    </Box>
+                                </Box>
+                            ))
+                        )}
+                    </Paper>
+                </Grid>
+
+                {/* Certifications */}
+                <Grid item xs={12} md={6}>
+                    <Paper elevation={2} sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <VerifiedOutlined color="secondary" sx={{ mr: 1.5 }} />
+                            <Typography variant="h6" fontWeight="bold">
+                                Certifications
+                            </Typography>
+                        </Box>
+
+                        {certifications.length === 0 ? (
+                            <Alert severity="info">No certifications added yet.</Alert>
+                        ) : (
+                            certifications.map((cert) => (
+                                <Box key={cert.id} sx={{ mb: 2, pb: 2, borderBottom: '1px solid #eee' }}>
+                                    <Typography variant="subtitle1" fontWeight="bold">{cert.title}</Typography>
+                                    <Typography variant="body2" color="text.secondary">{cert.provider}</Typography>
+                                    {cert.completion_date && (
+                                        <Typography variant="caption" display="block">
+                                            Completed: {new Date(cert.completion_date).toLocaleDateString()}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            ))
                         )}
                     </Paper>
                 </Grid>
