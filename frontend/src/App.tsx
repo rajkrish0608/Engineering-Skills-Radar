@@ -12,6 +12,8 @@ import GapAnalysisPage from './pages/GapAnalysisPage';
 import AssessmentPage from './pages/AssessmentPage';
 import TPODashboard from './pages/TPODashboard';
 import TPOStudentList from './pages/TPOStudentList';
+import TPOStudentDetail from './pages/TPOStudentDetail';
+import BulkImportPage from './pages/BulkImportPage';
 
 // Create Material-UI theme
 const theme = createTheme({
@@ -79,6 +81,22 @@ function App() {
               element={
                 <ProtectedRoute requiredRole={['tpo', 'admin']}>
                   <TPOStudentList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tpo/import"
+              element={
+                <ProtectedRoute requiredRole={['tpo', 'admin']}>
+                  <BulkImportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tpo/students/:studentId"
+              element={
+                <ProtectedRoute requiredRole={['tpo', 'admin']}>
+                  <TPOStudentDetail />
                 </ProtectedRoute>
               }
             />
