@@ -15,6 +15,7 @@ import TPOStudentList from './pages/TPOStudentList';
 import TPOStudentDetail from './pages/TPOStudentDetail';
 import BulkImportPage from './pages/BulkImportPage';
 import TPORoleList from './pages/TPORoleList';
+import TPOReports from './pages/TPOReports';
 
 // Create Material-UI theme
 const theme = createTheme({
@@ -106,6 +107,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole={['tpo', 'admin']}>
                   <TPORoleList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tpo/reports"
+              element={
+                <ProtectedRoute requiredRole={['tpo', 'admin']}>
+                  <TPOReports />
                 </ProtectedRoute>
               }
             />

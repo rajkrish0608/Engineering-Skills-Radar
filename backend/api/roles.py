@@ -203,6 +203,73 @@ async def get_matched_students_for_role(
                 for match, student in matches
             ]
         })
-    
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid role ID format")
+
+
+@router.post("/{role_id}/recalculate-matches")
+async def recalculate_role_matches(
+    role_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Recalculate compatibility scores for all eligible students against this role
+    """
+    try:
+        from models.database_models import Student, StudentRoleMatch
+        from datetime import datetime
+        
+        # 1. Get the role
+        role = RoleService.get_role_by_id(db, uuid.UUID(role_id))
+        if not role:
+            raise HTTPException(status_code=404, detail="Role not found")
+            
+        # 2. Get all eligible students (based on branch)
+        students_query = db.query(Student)
+        students = students_query.all()
+        # Filter in python for safety
+        eligible_students = [s for s in students if not role.eligible_branches or s.branch in role.eligible_branches]
+        
+        # 3. Calculate and update matches
+        match_count = 0
+        
+        for student in eligible_students:
+            match_result = RoleService.calculate_role_match(db, student.id, role.id)
+            
+            # Update or create StudentRoleMatch record
+            existing_match = db.query(StudentRoleMatch).filter(
+                StudentRoleMatch.student_id == student.id,
+                StudentRoleMatch.role_id == role.id
+            ).first()
+            
+            if existing_match:
+                existing_match.compatibility_score = match_result['match_score']
+                existing_match.missing_skills = match_result['missing_skills']
+                existing_match.matched_skills_count = match_result['matched_skills']
+                existing_match.calculated_at = datetime.now()
+            else:
+                new_match = StudentRoleMatch(
+                    student_id=student.id,
+                    role_id=role.id,
+                    compatibility_score=match_result['match_score'],
+                    missing_skills=match_result['missing_skills'],
+                    matched_skills_count=match_result['matched_skills'],
+                    calculated_at=datetime.now()
+                )
+                db.add(new_match)
+            
+            match_count += 1
+            
+        db.commit()
+        
+        return JSONResponse(content={
+            'status': 'success',
+            'message': f'Recalculated matches for {match_count} student(s)',
+            'role': role.role_title
+        })
+        
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid role ID format")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

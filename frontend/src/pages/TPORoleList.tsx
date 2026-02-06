@@ -563,15 +563,37 @@ const TPORoleList: React.FC = () => {
                         </Grid>
                     </Grid>
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseDialog}>Cancel</Button>
-                    <Button
-                        onClick={handleSave}
-                        variant="contained"
-                        disabled={saving || !formData.role_title}
-                    >
-                        {saving ? 'Saving...' : 'Save Role'}
-                    </Button>
+                <DialogActions sx={{ justifyContent: 'space-between', px: 3, py: 2 }}>
+                    {editingRole && (
+                        <Button
+                            color="info"
+                            onClick={async () => {
+                                try {
+                                    setSaving(true);
+                                    await apiClient.post(`/api/roles/${editingRole.id}/recalculate-matches`, {});
+                                    alert('Matches recalculated successfully!');
+                                } catch (e) {
+                                    console.error(e);
+                                    alert('Failed to recalculate matches');
+                                } finally {
+                                    setSaving(false);
+                                }
+                            }}
+                            disabled={saving}
+                        >
+                            Recalculate Matches
+                        </Button>
+                    )}
+                    <Box>
+                        <Button onClick={handleCloseDialog} sx={{ mr: 1 }}>Cancel</Button>
+                        <Button
+                            onClick={handleSave}
+                            variant="contained"
+                            disabled={saving || !formData.role_title}
+                        >
+                            {saving ? 'Saving...' : 'Save Role'}
+                        </Button>
+                    </Box>
                 </DialogActions>
             </Dialog>
         </Container>

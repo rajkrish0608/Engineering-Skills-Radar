@@ -273,3 +273,78 @@ async def get_top_students(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/export/students")
+async def export_students_csv(
+    db: Session = Depends(get_db)
+):
+    """
+    Export all student data and skill summaries to CSV
+    """
+    try:
+        from fastapi.responses import Response
+        import csv
+        import io
+        
+        # Query all students with derived data
+        students = db.query(Student).all()
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Header
+        writer.writerow([
+            'Roll Number', 
+            'Full Name', 
+            'Branch', 
+            'CGPA', 
+            'Email', 
+            'Avg Skill Score', 
+            'Top Skill', 
+            'Top Match Role', 
+            'Match Score'
+        ])
+        
+        for student in students:
+            # Get avg skill score
+            avg_score = db.query(func.avg(StudentSkill.proficiency_score)).filter(
+                StudentSkill.student_id == student.id
+            ).scalar()
+            
+            # Get top skill
+            top_skill = db.query(Skill.skill_name).join(
+                StudentSkill, Skill.id == StudentSkill.skill_id
+            ).filter(
+                StudentSkill.student_id == student.id
+            ).order_by(StudentSkill.proficiency_score.desc()).first()
+            
+            # Get top role match
+            top_match = db.query(IndustryRole.role_title, StudentRoleMatch.compatibility_score).join(
+                StudentRoleMatch, IndustryRole.id == StudentRoleMatch.role_id
+            ).filter(
+                StudentRoleMatch.student_id == student.id
+            ).order_by(StudentRoleMatch.compatibility_score.desc()).first()
+            
+            writer.writerow([
+                student.roll_number,
+                student.full_name,
+                student.branch,
+                student.cgpa,
+                student.email,
+                round(float(avg_score), 1) if avg_score else 0.0,
+                top_skill[0] if top_skill else 'N/A',
+                top_match[0] if top_match else 'N/A',
+                round(float(top_match.compatibility_score), 1) if top_match else 0.0
+            ])
+            
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=student_report_{uuid.uuid4().hex[:8]}.csv"
+            }
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
